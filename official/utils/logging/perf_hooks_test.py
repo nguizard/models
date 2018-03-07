@@ -1,21 +1,31 @@
+# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+"""Tests for perf_hooks."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os.path
-import shutil
-import tempfile
 import time
-
+import perf_hooks
+import tensorflow as tf
 from tensorflow.python.training import monitored_session
 
-import unittest
-
-import tensorflow as tf
-
-import examples_per_second_hook
-
 tf.logging.set_verbosity(tf.logging.ERROR)
+
 
 class ExamplesPerSecondHookTest(tf.test.TestCase):
 
@@ -41,17 +51,23 @@ class ExamplesPerSecondHookTest(tf.test.TestCase):
 
   def test_raise_in_both_secs_and_steps(self):
     with self.assertRaises(ValueError):
-      examples_per_second_hook.ExamplesPerSecondHook(batch_size=256,
-        every_n_steps=10, every_n_secs=20)
+      perf_hooks.ExamplesPerSecondHook(
+          batch_size=256,
+          every_n_steps=10,
+          every_n_secs=20)
 
   def test_raise_in_none_secs_and_steps(self):
     with self.assertRaises(ValueError):
-      examples_per_second_hook.ExamplesPerSecondHook(batch_size=256,
-        every_n_steps=None, every_n_secs=None)
+      perf_hooks.ExamplesPerSecondHook(
+          batch_size=256,
+          every_n_steps=None,
+          every_n_secs=None)
 
   def _validate_log_every_n_steps(self, sess, every_n_steps, warm_steps):
-    hook = examples_per_second_hook.ExamplesPerSecondHook(
-        batch_size=256, every_n_steps=every_n_steps, warm_steps=warm_steps)
+    hook = perf_hooks.ExamplesPerSecondHook(
+        batch_size=256,
+        every_n_steps=every_n_steps,
+        warm_steps=warm_steps)
     hook.begin()
     mon_sess = monitored_session._HookedSession(sess, [hook])
     sess.run(tf.global_variables_initializer())
@@ -87,20 +103,19 @@ class ExamplesPerSecondHookTest(tf.test.TestCase):
     with self.graph.as_default(), tf.Session() as sess:
       self._validate_log_every_n_steps(sess, 5, 0)
 
-
   def test_examples_per_sec_every_1_steps_with_warm_steps(self):
     with self.graph.as_default(), tf.Session() as sess:
       self._validate_log_every_n_steps(sess, 1, 10)
-
 
   def test_examples_per_sec_every_5_steps_with_warm_steps(self):
     with self.graph.as_default(), tf.Session() as sess:
       self._validate_log_every_n_steps(sess, 5, 10)
 
-
   def _validate_log_every_n_secs(self, sess, every_n_secs):
-    hook = examples_per_second_hook.ExamplesPerSecondHook(
-          batch_size=256, every_n_steps=None, every_n_secs=every_n_secs)
+    hook = perf_hooks.ExamplesPerSecondHook(
+        batch_size=256,
+        every_n_steps=None,
+        every_n_secs=every_n_secs)
     hook.begin()
     mon_sess = monitored_session._HookedSession(sess, [hook])
     sess.run(tf.global_variables_initializer())
@@ -115,7 +130,6 @@ class ExamplesPerSecondHookTest(tf.test.TestCase):
     self.assertRegexpMatches(str(self.logged_message), 'exp/sec')
 
     hook.end(sess)
-
 
   def test_examples_per_sec_every_1_secs(self):
     with self.graph.as_default(), tf.Session() as sess:
